@@ -1,22 +1,18 @@
-name: Flutter CI/CD
+name: Android Release
 
 on:
   push:
-    branches:
-      - main   # hoặc nhánh bạn muốn theo dõi
-  pull_request:
-    branches:
-      - main
+    tags:
+      - 'v*'  # Chạy khi push tag bắt đầu bằng v
 
 jobs:
   build:
-    runs-on: macos-latest  # macOS để build iOS và Android cùng lúc
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java (cho Android)
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -30,27 +26,16 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run tests
-        run: flutter test
+      - name: Decode Android keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      # Android build
-      - name: Build Android APK
-        run: flutter build apk --release
+      - name: Create key.properties
+        run: |
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
 
-#      # iOS build
-#      - name: Install CocoaPods dependencies
-#        run: |
-#          cd ios
-#          pod install --repo-update
-#          cd ..
-#
-#      - name: Build iOS IPA
-#        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+      - name: Build Android App Bundle
+        run: flutter build appbundle --release
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-build
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/ios/ipa/*.ipa
