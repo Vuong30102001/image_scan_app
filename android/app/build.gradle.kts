@@ -50,8 +50,9 @@ android {
 
     buildTypes {
         getByName("release") {
+            isMinifyEnabled = true      // Bật code shrinking
+            isShrinkResources = true    // Bật gỡ bỏ tài nguyên không dùng
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
         }
     }
 }
